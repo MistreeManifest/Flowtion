@@ -131,6 +131,19 @@ export async function listUserThreads(userId: number) {
   );
 }
 
+export async function listAllThreads() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const allThreads = await db
+    .select()
+    .from(threads)
+    .orderBy(desc(threads.updatedAt))
+    .limit(50);
+
+  return allThreads;
+}
+
 export async function getThreadMessages(threadId: number) {
   const db = await getDb();
   if (!db) return [];

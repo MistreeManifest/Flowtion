@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { useBreathingState } from "@/hooks/useBreathingState";
 import {
@@ -13,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Plus, ChevronDown, Loader2 } from "lucide-react";
 
 export default function Home() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -23,42 +22,8 @@ export default function Home() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <LandingView />;
-  }
-
+  // No login gate — go straight to workspace
   return <WorkspaceView />;
-}
-
-// ─── Landing ─────────────────────────────────────────────────────────────────
-
-function LandingView() {
-  return (
-    <div className="flex flex-col items-center justify-center h-screen bg-background px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="text-center space-y-6 max-w-md"
-      >
-        <h1 className="text-3xl font-light tracking-tight text-foreground">
-          Flowtion
-        </h1>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          Say it, and the image will learn. A platform where ideas breathe into
-          visual form through conversation.
-        </p>
-        <Button
-          variant="default"
-          size="lg"
-          className="mt-4"
-          onClick={() => (window.location.href = getLoginUrl())}
-        >
-          Begin
-        </Button>
-      </motion.div>
-    </div>
-  );
 }
 
 // ─── Workspace ───────────────────────────────────────────────────────────────
@@ -133,6 +98,7 @@ function WorkspaceView() {
         {/* Thread pane — left */}
         <section className="flex-1 flex flex-col overflow-hidden border-r border-border">
           <ThreadPane
+            projectId={projectId}
             threadId={threadId}
             onThreadCreated={(pid, tid) => {
               setProjectId(pid);
@@ -169,7 +135,10 @@ function ConversationSelector({
   onSelect,
   onNew,
 }: ConversationSelectorProps) {
-  const { data: threadList = [] } = trpc.flowtion.listThreads.useQuery();
+  const { data: threadList = [] } = trpc.flowtion.listThreads.useQuery(
+    undefined,
+    { retry: false }
+  );
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -246,12 +215,13 @@ function ConversationSelector({
 // ─── Thread Pane ─────────────────────────────────────────────────────────────
 
 interface ThreadPaneProps {
+  projectId: number | null;
   threadId: number | null;
   onThreadCreated: (projectId: number, threadId: number) => void;
   isBreathing: boolean;
 }
 
-function ThreadPane({ threadId, onThreadCreated, isBreathing }: ThreadPaneProps) {
+function ThreadPane({ projectId, threadId, onThreadCreated, isBreathing }: ThreadPaneProps) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -278,12 +248,11 @@ function ThreadPane({ threadId, onThreadCreated, isBreathing }: ThreadPaneProps)
 
     sendMutation.mutate({
       text: input,
-      projectId: threadId ? undefined : undefined,
-      threadId: threadId || undefined,
+      projectId: projectId ?? undefined,
+      threadId: threadId ?? undefined,
     });
 
     setInput("");
-    // Re-focus the textarea
     setTimeout(() => textareaRef.current?.focus(), 50);
   };
 
@@ -385,7 +354,7 @@ interface ArtifactPaneProps {
 }
 
 function ArtifactPane({ projectId, threadId, onVersionChange }: ArtifactPaneProps) {
-  const { data: artifact, refetch } = trpc.flowtion.getLatestArtifact.useQuery(
+  const { data: artifact } = trpc.flowtion.getLatestArtifact.useQuery(
     { projectId: projectId!, threadId: threadId ?? undefined },
     {
       enabled: !!projectId,

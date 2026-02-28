@@ -20,3 +20,5 @@
 - [x] Conversation selector for switching between threads
 - [x] Vitest tests for breathing cycle and tRPC procedures
 - [x] Fix artifact evolution: cast phase should receive previous artifact as context and evolve it, not replace it
+- [x] Bug: artifact version stuck at v1, second breath not evolving previous artifact (fixed: projectId was not passed from frontend)
+- [x] Remove login screen — go straight to workspace without auth gate

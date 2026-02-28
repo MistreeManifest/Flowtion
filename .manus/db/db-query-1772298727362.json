@@ -1,0 +1,70 @@
+{
+  "query": "SELECT id, projectId, threadId, v, kind, summary, compositeVersion, createdAt FROM artifact_versions ORDER BY createdAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3cQJBCZiXjHjiDu.b6d2cc91c4ef --database Awrpd7YHNmeKcwR7j56pKD --execute SELECT id, projectId, threadId, v, kind, summary, compositeVersion, createdAt FROM artifact_versions ORDER BY createdAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "6",
+      "projectId": "6",
+      "threadId": "2",
+      "v": "1",
+      "kind": "html",
+      "summary": "This HTML artifact creates a celestial scene to evoke wonder and exploration. It features a dark, radial gradient background representing deep space, sprinkled with twinkling stars and occasional shooting stars. Two pulsating, blurred radial gradients form a central nebula or galaxy, adding to the cosmic vastness. The main title \"THE COSMIC VEIL\" uses a vibrant gradient and a glowing text shadow animation, with a subtitle \"Unveiling the wonders beyond,\" reinforcing the Explorer archetype and the emotion of wonder.",
+      "compositeVersion": "v1",
+      "createdAt": "2026-02-28 17:10:05"
+    },
+    {
+      "id": "5",
+      "projectId": "5",
+      "threadId": "2",
+      "v": "1",
+      "kind": "html",
+      "summary": "This HTML artifact visually represents the concept of the infinite becoming finite. A dark, nebulous background suggests the boundless, from which a central, glowing, crystalline form emerges and converges. Ethereal light shards and a pulsating core emphasize the transformation and creation. The overall aesthetic uses cool blues and whites with gradients and glows to evoke wonder, aligning with the Creator archetype. Text \"THE FINITE FORM\" with a gradient glow and a subtitle reinforces the concept.",
+      "compositeVersion": "v1",
+      "createdAt": "2026-02-28 17:09:40"
+    },
+    {
+      "id": "4",
+      "projectId": "4",
+      "threadId": "2",
+      "v": "1",
+      "kind": "html",
+      "summary": "An HTML artifact representing the cyclical nature of beginnings and endings. It features a central animated sphere that dissolves and reforms, symbolizing transformation, enclosed by rotating ethereal rings. The text \"THE CYCLE\" with a gradient and glow, and a subtitle \"Every ending is a new beginning,\" reinforce the theme. The overall aesthetic is contemplative and wise, using a dark background with subtle glowing elements.",
+      "compositeVersion": "v1",
+      "createdAt": "2026-02-28 17:09:04"
+    },
+    {
+      "id": "3",
+      "projectId": "3",
+      "threadId": "2",
+      "v": "1",
+      "kind": "html",
+      "summary": "An abstract representation of genesis or inception, featuring a glowing, pulsating core of light and energy, surrounded by rotating ethereal rings, set against a dark, deep space background. The text \"THE ORIGIN\" with a gradient and subtle glow, and a subtitle \"Anticipating what is to come.\" emphasize the Creator archetype and the emotion of anticipation. Animations create a sense of life and dynamic emergence.",
+      "compositeVersion": "v1",
+      "createdAt": "2026-02-28 17:08:43"
+    },
+    {
+      "id": "2",
+      "projectId": "2",
+      "threadId": "1",
+      "v": "1",
+      "kind": "html",
+      "summary": "A dark, mysterious background with a glowing, interconnected network symbol at its center, hinting at hidden power and organization. The text 'CRYPTIC SYNDICATE' appears below it in a stark, fragmented style with a subtle blue-green glow, emphasizing the group's enigmatic nature and creative influence.",
+      "compositeVersion": "v1",
+      "createdAt": "2026-02-28 16:59:32"
+    },
+    {
+      "id": "1",
+      "projectId": "1",
+      "threadId": "1",
+      "v": "1",
+      "kind": "html",
+      "summary": "A dark, ethereal background with a pulsing, glowing purple core representing the genesis point. Abstract light streaks unfold from the center, symbolizing the emergence of a new concept. Bold, gradient-filled text \"THE GENESIS\" and \"A NEW NARRATIVE UNFOLDS\" appear with a subtle, wondering reveal animation. Subtle floating particles add to the sense of wonder and creation.",
+      "compositeVersion": "v1",
+      "createdAt": "2026-02-28 16:58:03"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tprojectId\tthreadId\tv\tkind\tsummary\tcompositeVersion\tcreatedAt\n6\t6\t2\t1\thtml\tThis HTML artifact creates a celestial scene to evoke wonder and exploration. It features a dark, radial gradient background representing deep space, sprinkled with twinkling stars and occasional shooting stars. Two pulsating, blurred radial gradients form a central nebula or galaxy, adding to the cosmic vastness. The main title \"THE COSMIC VEIL\" uses a vibrant gradient and a glowing text shadow animation, with a subtitle \"Unveiling the wonders beyond,\" reinforcing the Explorer archetype and the emotion of wonder.\tv1\t2026-02-28 17:10:05\n5\t5\t2\t1\thtml\tThis HTML artifact visually represents the concept of the infinite becoming finite. A dark, nebulous background suggests the boundless, from which a central, glowing, crystalline form emerges and converges. Ethereal light shards and a pulsating core emphasize the transformation and creation. The overall aesthetic uses cool blues and whites with gradients and glows to evoke wonder, aligning with the Creator archetype. Text \"THE FINITE FORM\" with a gradient glow and a subtitle reinforces the concept.\tv1\t2026-02-28 17:09:40\n4\t4\t2\t1\thtml\tAn HTML artifact representing the cyclical nature of beginnings and endings. It features a central animated sphere that dissolves and reforms, symbolizing transformation, enclosed by rotating ethereal rings. The text \"THE CYCLE\" with a gradient and glow, and a subtitle \"Every ending is a new beginning,\" reinforce the theme. The overall aesthetic is contemplative and wise, using a dark background with subtle glowing elements.\tv1\t2026-02-28 17:09:04\n3\t3\t2\t1\thtml\tAn abstract representation of genesis or inception, featuring a glowing, pulsating core of light and energy, surrounded by rotating ethereal rings, set against a dark, deep space background. The text \"THE ORIGIN\" with a gradient and subtle glow, and a subtitle \"Anticipating what is to come.\" emphasize the Creator archetype and the emotion of anticipation. Animations create a sense of life and dynamic emergence.\tv1\t2026-02-28 17:08:43\n2\t2\t1\t1\thtml\tA dark, mysterious background with a glowing, interconnected network symbol at its center, hinting at hidden power and organization. The text 'CRYPTIC SYNDICATE' appears below it in a stark, fragmented style with a subtle blue-green glow, emphasizing the group's enigmatic nature and creative influence.\tv1\t2026-02-28 16:59:32\n1\t1\t1\t1\thtml\tA dark, ethereal background with a pulsing, glowing purple core representing the genesis point. Abstract light streaks unfold from the center, symbolizing the emergence of a new concept. Bold, gradient-filled text \"THE GENESIS\" and \"A NEW NARRATIVE UNFOLDS\" appear with a subtle, wondering reveal animation. Subtle floating particles add to the sense of wonder and creation.\tv1\t2026-02-28 16:58:03\n",
+  "stderr": "",
+  "execution_time_ms": 408
+}

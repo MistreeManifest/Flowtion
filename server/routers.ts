@@ -9,6 +9,7 @@ import {
   getThreadMessages,
   getLatestArtifact,
   getBreathHistory,
+  listAllThreads,
 } from "./db";
 
 export const appRouter = router({
@@ -25,7 +26,7 @@ export const appRouter = router({
 
   flowtion: router({
     /** Send a message and trigger a full breathing cycle */
-    send: protectedProcedure
+    send: publicProcedure
       .input(
         z.object({
           text: z.string().min(1).max(10000),
@@ -34,8 +35,10 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
+        // Use user id if authenticated, otherwise use a default guest id
+        const userId = ctx.user?.id ?? 0;
         const result = await breathe(
-          ctx.user.id,
+          userId,
           input.text,
           input.projectId,
           input.threadId
@@ -48,20 +51,24 @@ export const appRouter = router({
       return getBreathingSnapshot();
     }),
 
-    /** List all threads for the current user */
-    listThreads: protectedProcedure.query(async ({ ctx }) => {
-      return listUserThreads(ctx.user.id);
+    /** List all threads — works for both authenticated and guest users */
+    listThreads: publicProcedure.query(async ({ ctx }) => {
+      if (ctx.user) {
+        return listUserThreads(ctx.user.id);
+      }
+      // For unauthenticated users, list all threads (single-user mode)
+      return listAllThreads();
     }),
 
     /** Get messages for a thread */
-    getMessages: protectedProcedure
+    getMessages: publicProcedure
       .input(z.object({ threadId: z.number() }))
       .query(async ({ input }) => {
         return getThreadMessages(input.threadId);
       }),
 
     /** Get the latest artifact for a project/thread */
-    getLatestArtifact: protectedProcedure
+    getLatestArtifact: publicProcedure
       .input(
         z.object({
           projectId: z.number(),
@@ -73,7 +80,7 @@ export const appRouter = router({
       }),
 
     /** Get breath history for a project */
-    getBreathHistory: protectedProcedure
+    getBreathHistory: publicProcedure
       .input(
         z.object({
           projectId: z.number(),
