@@ -19,3 +19,4 @@
 - [x] ArtifactPane with version tracking and real-time rendering
 - [x] Conversation selector for switching between threads
 - [x] Vitest tests for breathing cycle and tRPC procedures
+- [x] Fix artifact evolution: cast phase should receive previous artifact as context and evolve it, not replace it

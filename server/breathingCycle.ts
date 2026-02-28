@@ -200,14 +200,32 @@ export async function breathe(
   transition("cast", projectId, threadId);
   const castStart = Date.now();
 
-  let artifactHtml = "";
-  let summary = "";
-  try {
-    const castResponse = await invokeLLM({
-      messages: [
-        {
-          role: "system",
-          content: `You are the cast phase of a breathing cycle. You transform intent into visual form.
+  // Fetch the previous artifact for evolution context
+  const previousArtifacts = await db
+    .select()
+    .from(artifactVersions)
+    .where(and(eq(artifactVersions.projectId, projectId), eq(artifactVersions.threadId, threadId)))
+    .orderBy(desc(artifactVersions.v))
+    .limit(1);
+
+  const previousArtifact = previousArtifacts[0] ?? null;
+
+  // Build the system prompt — evolution-aware
+  const isEvolution = previousArtifact !== null;
+  const systemPrompt = isEvolution
+    ? `You are the cast phase of a breathing cycle. You EVOLVE existing visual artifacts.
+You have been given the previous artifact (v${previousArtifact.v}) and a new delta. Your job is to evolve the artifact — not replace it.
+
+Evolution rules:
+- The new artifact should feel like a natural progression of the previous one
+- Preserve the visual DNA: keep structural elements, color families, and spatial relationships that work
+- Layer in the new intent, emotion, and archetype — let them reshape and grow the existing form
+- The evolution should be visible: a viewer should see both continuity and change
+- Output ONLY the HTML content (no markdown fences, no explanation)
+- Use inline CSS for all styling
+- Keep it self-contained (no external resources)
+- Include a brief text summary at the end as a comment: <!-- SUMMARY: ... -->`
+    : `You are the cast phase of a breathing cycle. You transform intent into visual form.
 Given the extracted delta (intent, emotion, archetype, visual intent), generate an HTML artifact that visually represents the concept.
 
 Rules:
@@ -216,19 +234,44 @@ Rules:
 - Create something visually compelling — use gradients, shapes, typography
 - The artifact should feel alive and connected to the emotion and archetype
 - Keep it self-contained (no external resources)
-- Include a brief text summary at the end as a comment: <!-- SUMMARY: ... -->`,
+- Include a brief text summary at the end as a comment: <!-- SUMMARY: ... -->`;
+
+  // Build the user prompt — include previous artifact if evolving
+  const userPromptParts = [
+    `Delta:`,
+    `Intent: ${delta.intent}`,
+    `Emotion: ${delta.emotion}`,
+    `Archetype: ${delta.archetype}`,
+    `Visual Intent: ${delta.visualIntent}`,
+    `Tags: ${delta.tags.join(", ")}`,
+    ``,
+    `Conversation context:`,
+    conversationContext,
+  ];
+
+  if (isEvolution && previousArtifact) {
+    userPromptParts.push(
+      ``,
+      `--- PREVIOUS ARTIFACT (v${previousArtifact.v}) ---`,
+      previousArtifact.uri,
+      `--- END PREVIOUS ARTIFACT ---`,
+      ``,
+      `Evolve this artifact. Let the new intent reshape it while preserving its essence.`
+    );
+  }
+
+  let artifactHtml = "";
+  let summary = "";
+  try {
+    const castResponse = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
         },
         {
           role: "user",
-          content: `Delta:
-Intent: ${delta.intent}
-Emotion: ${delta.emotion}
-Archetype: ${delta.archetype}
-Visual Intent: ${delta.visualIntent}
-Tags: ${delta.tags.join(", ")}
-
-Conversation context:
-${conversationContext}`,
+          content: userPromptParts.join("\n"),
         },
       ],
     });
