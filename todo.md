@@ -1,0 +1,21 @@
+# Flowtion Phase 1 — TODO
+
+- [x] Database schema: projects, threads, messages, artifact_versions, breath_events tables
+- [x] composite_version field on artifact_versions for embedding traceability
+- [x] Backend breathing cycle state machine (inhale → delta → cast → exhale)
+- [x] Event-driven state transitions with EventEmitter
+- [x] Breath metadata logging: inhale_duration_ms, cast_stalled, exhale_type, cycle_depth
+- [x] tRPC API: send message (initiates breathing cycle)
+- [x] tRPC API: list threads, get messages, get latest artifact
+- [x] tRPC API: get breathing state (polling endpoint)
+- [x] LLM integration in delta phase (intent extraction via invokeLLM)
+- [x] Artifact generation in cast phase (via invokeLLM)
+- [x] Frontend useBreathingState hook mirroring backend state via tRPC
+- [x] Visual breathing indicator with organic motion curves (scale + opacity)
+- [x] Dark theme with design tokens for Flowtion aesthetic
+- [x] Message composer with Cmd/Ctrl+Enter to send
+- [x] Split-pane layout: thread left, artifact right
+- [x] ThreadPane with message history and auto-scroll
+- [x] ArtifactPane with version tracking and real-time rendering
+- [x] Conversation selector for switching between threads
+- [x] Vitest tests for breathing cycle and tRPC procedures

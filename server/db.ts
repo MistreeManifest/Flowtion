@@ -1,7 +1,15 @@
-import { eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import {
+  InsertUser,
+  users,
+  projects,
+  threads,
+  messages,
+  artifactVersions,
+  breathEvents,
+} from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -56,8 +64,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = "admin";
+      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
@@ -84,9 +92,83 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ─── Flowtion Query Helpers ──────────────────────────────────────────────────
+
+export async function listUserThreads(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const userProjects = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.userId, userId));
+
+  if (userProjects.length === 0) return [];
+
+  const projectIds = userProjects.map((p) => p.id);
+
+  const allThreads = [];
+  for (const pid of projectIds) {
+    const t = await db
+      .select()
+      .from(threads)
+      .where(eq(threads.projectId, pid))
+      .orderBy(desc(threads.updatedAt));
+    allThreads.push(...t.map((thread) => ({ ...thread, projectId: pid })));
+  }
+
+  return allThreads.sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
+}
+
+export async function getThreadMessages(threadId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(messages)
+    .where(eq(messages.threadId, threadId))
+    .orderBy(messages.createdAt);
+}
+
+export async function getLatestArtifact(projectId: number, threadId?: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const conditions = [eq(artifactVersions.projectId, projectId)];
+  if (threadId !== undefined) {
+    conditions.push(eq(artifactVersions.threadId, threadId));
+  }
+
+  const result = await db
+    .select()
+    .from(artifactVersions)
+    .where(and(...conditions))
+    .orderBy(desc(artifactVersions.v))
+    .limit(1);
+
+  return result[0] ?? null;
+}
+
+export async function getBreathHistory(projectId: number, limit = 20) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(breathEvents)
+    .where(eq(breathEvents.projectId, projectId))
+    .orderBy(desc(breathEvents.createdAt))
+    .limit(limit);
+}
