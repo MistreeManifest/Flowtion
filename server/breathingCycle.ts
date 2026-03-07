@@ -65,8 +65,24 @@ export function onBreathingEvent(handler: (event: BreathingEvent) => void) {
 }
 
 /**
+ * Reset the breathing state to idle. Called automatically on error,
+ * but also available if the cycle ever gets stuck.
+ */
+function resetToIdle() {
+  currentState = "idle";
+  currentProjectId = null;
+  currentThreadId = null;
+  phaseStartedAt = null;
+}
+
+/**
  * Initiate a full breathing cycle for a given message.
  * This is the main entry point — it runs the full inhale→delta→cast→exhale sequence.
+ *
+ * The entire cycle is wrapped in error recovery: if anything throws after
+ * a phase transition, the state resets to idle and a CYCLE_ERROR event is
+ * emitted so the frontend can surface it. Without this, a mid-cycle crash
+ * (e.g. LLM timeout, DB hiccup) would leave the state stuck forever.
  */
 export async function breathe(
   userId: number,
@@ -105,6 +121,56 @@ export async function breathe(
     .values({ threadId, role: "user", text })
     .$returningId();
   const messageId = insertedMsg.id;
+
+  // ── Begin the breathing cycle with error recovery ──────────────────────
+  try {
+    return await executeCycle(db, {
+      userId,
+      text,
+      projectId,
+      threadId,
+      messageId,
+      cycleStartedAt,
+    });
+  } catch (err) {
+    // Reset state so the system isn't stuck
+    const failedPhase = currentState;
+    resetToIdle();
+
+    // Emit error event for any listeners (future: SSE to frontend)
+    emit({
+      type: "CYCLE_ERROR",
+      projectId,
+      threadId,
+      error: `Breathing cycle failed during ${failedPhase}: ${err instanceof Error ? err.message : String(err)}`,
+    });
+
+    console.error(
+      `[BreathingCycle] Cycle failed during ${failedPhase}, reset to idle:`,
+      err
+    );
+
+    // Re-throw so the tRPC mutation surfaces the error to the caller
+    throw err;
+  }
+}
+
+// ─── Cycle Implementation ─────────────────────────────────────────────────
+
+interface CycleParams {
+  userId: number;
+  text: string;
+  projectId: number;
+  threadId: number;
+  messageId: number;
+  cycleStartedAt: number;
+}
+
+async function executeCycle(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  params: CycleParams
+): Promise<{ projectId: number; threadId: number; messageId: number }> {
+  const { text, projectId, threadId, messageId, cycleStartedAt } = params;
 
   // ── INHALE: Gather context ─────────────────────────────────────────────
   transition("inhale", projectId, threadId);
@@ -376,10 +442,7 @@ Rules:
     .where(eq(threads.id, threadId));
 
   // Return to idle
-  currentState = "idle";
-  currentProjectId = null;
-  currentThreadId = null;
-  phaseStartedAt = null;
+  resetToIdle();
 
   return { projectId, threadId, messageId };
 }

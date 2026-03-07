@@ -185,3 +185,29 @@ export async function getBreathHistory(projectId: number, limit = 20) {
     .orderBy(desc(breathEvents.createdAt))
     .limit(limit);
 }
+
+export async function getArtifactHistory(projectId: number, threadId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [eq(artifactVersions.projectId, projectId)];
+  if (threadId !== undefined) {
+    conditions.push(eq(artifactVersions.threadId, threadId));
+  }
+
+  return db
+    .select({
+      id: artifactVersions.id,
+      projectId: artifactVersions.projectId,
+      threadId: artifactVersions.threadId,
+      v: artifactVersions.v,
+      kind: artifactVersions.kind,
+      uri: artifactVersions.uri,
+      summary: artifactVersions.summary,
+      tags: artifactVersions.tags,
+      createdAt: artifactVersions.createdAt,
+    })
+    .from(artifactVersions)
+    .where(and(...conditions))
+    .orderBy(artifactVersions.v);
+}
