@@ -9,7 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Streamdown } from "streamdown";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Plus, ChevronDown, Loader2 } from "lucide-react";
+import { Send, Plus, ChevronDown, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { SandboxedArtifact } from "@/components/SandboxedArtifact";
 
 export default function Home() {
   const { loading } = useAuth();
@@ -354,7 +355,11 @@ interface ArtifactPaneProps {
 }
 
 function ArtifactPane({ projectId, threadId, onVersionChange }: ArtifactPaneProps) {
-  const { data: artifact } = trpc.flowtion.getLatestArtifact.useQuery(
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [pinned, setPinned] = useState(false);
+
+  // Fetch all artifact versions for the timeline
+  const { data: history = [] } = trpc.flowtion.getArtifactHistory.useQuery(
     { projectId: projectId!, threadId: threadId ?? undefined },
     {
       enabled: !!projectId,
@@ -363,95 +368,207 @@ function ArtifactPane({ projectId, threadId, onVersionChange }: ArtifactPaneProp
     }
   );
 
+  // Auto-select latest version when new artifacts arrive — unless the user
+  // has pinned to a specific older version
   useEffect(() => {
-    if (artifact) {
-      onVersionChange(artifact.v);
+    if (history.length === 0) {
+      setSelectedIndex(null);
+      onVersionChange(null);
+      return;
     }
-  }, [artifact, onVersionChange]);
+
+    if (!pinned || selectedIndex === null || selectedIndex >= history.length) {
+      const latestIdx = history.length - 1;
+      setSelectedIndex(latestIdx);
+      onVersionChange(history[latestIdx].v);
+    }
+  }, [history, pinned, selectedIndex, onVersionChange]);
+
+  const artifact = selectedIndex !== null && history[selectedIndex] ? history[selectedIndex] : null;
+  const isLatest = selectedIndex === history.length - 1;
+
+  const goTo = (index: number) => {
+    setSelectedIndex(index);
+    setPinned(index !== history.length - 1);
+    if (history[index]) onVersionChange(history[index].v);
+  };
+
+  const goPrev = () => {
+    if (selectedIndex !== null && selectedIndex > 0) goTo(selectedIndex - 1);
+  };
+
+  const goNext = () => {
+    if (selectedIndex !== null && selectedIndex < history.length - 1) goTo(selectedIndex + 1);
+  };
+
+  const jumpToLatest = () => {
+    setPinned(false);
+    const latestIdx = history.length - 1;
+    setSelectedIndex(latestIdx);
+    if (history[latestIdx]) onVersionChange(history[latestIdx].v);
+  };
 
   return (
-    <div className="h-full p-5 overflow-y-auto">
-      {!artifact ? (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center space-y-3">
-            <motion.div
-              animate={{
-                scale: [1, 1.05, 1],
-                opacity: [0.2, 0.4, 0.2],
-              }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-              className="w-20 h-20 rounded-full mx-auto border border-border/30"
-              style={{
-                background:
-                  "radial-gradient(circle, var(--breath-cast) 0%, transparent 80%)",
-              }}
-            />
-            <p className="text-muted-foreground text-sm font-light">
-              Waiting for first artifact...
-            </p>
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Artifact display */}
+      <div className="flex-1 p-5 overflow-y-auto">
+        {!artifact ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center space-y-3">
+              <motion.div
+                animate={{
+                  scale: [1, 1.05, 1],
+                  opacity: [0.2, 0.4, 0.2],
+                }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                className="w-20 h-20 rounded-full mx-auto border border-border/30"
+                style={{
+                  background:
+                    "radial-gradient(circle, var(--breath-cast) 0%, transparent 80%)",
+                }}
+              />
+              <p className="text-muted-foreground text-sm font-light">
+                Waiting for first artifact...
+              </p>
+            </div>
           </div>
-        </div>
-      ) : (
-        <motion.div
-          key={artifact.id}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          className="space-y-4"
-        >
-          {/* Artifact header */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Artifact
-            </h2>
-            <span className="text-xs px-2 py-0.5 bg-secondary rounded text-muted-foreground font-mono">
-              v{artifact.v}
-            </span>
-          </div>
+        ) : (
+          <motion.div
+            key={artifact.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-4"
+          >
+            {/* Artifact header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Artifact
+              </h2>
+              <div className="flex items-center gap-2">
+                {pinned && !isLatest && (
+                  <button
+                    onClick={jumpToLatest}
+                    className="text-xs px-2 py-0.5 bg-primary/20 hover:bg-primary/30 text-primary rounded transition-colors"
+                  >
+                    Jump to latest
+                  </button>
+                )}
+                <span className="text-xs px-2 py-0.5 bg-secondary rounded text-muted-foreground font-mono">
+                  v{artifact.v}
+                  {!isLatest && (
+                    <span className="text-muted-foreground/50 ml-1">
+                      / v{history[history.length - 1]?.v}
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
 
-          {/* Artifact content */}
-          <div className="bg-card rounded-lg border border-border p-5 overflow-hidden">
-            {(artifact.kind === "html" || artifact.kind === "svg") && (
-              <div
-                className="prose prose-invert prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: artifact.uri }}
-              />
+            {/* Artifact content */}
+            <div className="bg-card rounded-lg border border-border overflow-hidden">
+              {(artifact.kind === "html" || artifact.kind === "svg") && (
+                <SandboxedArtifact html={artifact.uri} artifactId={artifact.id} />
+              )}
+              {artifact.kind === "image" && (
+                <div className="p-5">
+                  <img
+                    src={artifact.uri}
+                    alt="Artifact"
+                    className="w-full rounded"
+                  />
+                </div>
+              )}
+              {artifact.kind === "markdown" && (
+                <div className="p-5 prose prose-invert prose-sm max-w-none">
+                  <Streamdown>{artifact.uri}</Streamdown>
+                </div>
+              )}
+            </div>
+
+            {/* Summary */}
+            {artifact.summary && (
+              <p className="text-xs text-muted-foreground font-light leading-relaxed">
+                {artifact.summary}
+              </p>
             )}
-            {artifact.kind === "image" && (
-              <img
-                src={artifact.uri}
-                alt="Artifact"
-                className="w-full rounded"
-              />
-            )}
-            {artifact.kind === "markdown" && (
-              <div className="prose prose-invert prose-sm max-w-none">
-                <Streamdown>{artifact.uri}</Streamdown>
+
+            {/* Tags */}
+            {artifact.tags && (artifact.tags as string[]).length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {(artifact.tags as string[]).map((tag: string, i: number) => (
+                  <span
+                    key={i}
+                    className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full"
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
             )}
-          </div>
+          </motion.div>
+        )}
+      </div>
 
-          {/* Summary */}
-          {artifact.summary && (
-            <p className="text-xs text-muted-foreground font-light leading-relaxed">
-              {artifact.summary}
-            </p>
-          )}
+      {/* Evolution timeline */}
+      {history.length > 1 && (
+        <div className="border-t border-border px-5 py-3 shrink-0">
+          <div className="flex items-center gap-3">
+            {/* Prev button */}
+            <button
+              onClick={goPrev}
+              disabled={selectedIndex === 0}
+              className="p-1 rounded hover:bg-secondary disabled:opacity-20 disabled:cursor-default transition-colors"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
 
-          {/* Tags */}
-          {artifact.tags && (artifact.tags as string[]).length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {(artifact.tags as string[]).map((tag: string, i: number) => (
-                <span
-                  key={i}
-                  className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full"
+            {/* Version dots */}
+            <div className="flex-1 flex items-center justify-center gap-1.5 overflow-x-auto">
+              {history.map((ver, i) => (
+                <button
+                  key={ver.id}
+                  onClick={() => goTo(i)}
+                  title={`v${ver.v}${ver.summary ? ` — ${ver.summary}` : ""}`}
+                  className="group relative shrink-0"
                 >
-                  {tag}
-                </span>
+                  <motion.div
+                    animate={{
+                      scale: i === selectedIndex ? 1.4 : 1,
+                    }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                      i === selectedIndex
+                        ? "bg-primary shadow-[0_0_8px_var(--primary)]"
+                        : i === history.length - 1
+                          ? "bg-breath-cast/60 hover:bg-breath-cast"
+                          : "bg-muted-foreground/30 hover:bg-muted-foreground/60"
+                    }`}
+                  />
+                  {/* Tooltip on hover */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">
+                    v{ver.v}
+                  </div>
+                </button>
               ))}
             </div>
-          )}
-        </motion.div>
+
+            {/* Next button */}
+            <button
+              onClick={goNext}
+              disabled={selectedIndex === history.length - 1}
+              className="p-1 rounded hover:bg-secondary disabled:opacity-20 disabled:cursor-default transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          </div>
+
+          {/* Current version label */}
+          <p className="text-center text-xs text-muted-foreground/60 mt-1.5 font-light">
+            Breath {selectedIndex !== null ? selectedIndex + 1 : 0} of {history.length}
+            {!isLatest && " (viewing history)"}
+          </p>
+        </div>
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import {
   getLatestArtifact,
   getBreathHistory,
   listAllThreads,
+  getArtifactHistory,
 } from "./db";
 
 export const appRouter = router({
@@ -77,6 +78,18 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         return getLatestArtifact(input.projectId, input.threadId);
+      }),
+
+    /** Get all artifact versions for a project/thread, ordered by version */
+    getArtifactHistory: publicProcedure
+      .input(
+        z.object({
+          projectId: z.number(),
+          threadId: z.number().optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        return getArtifactHistory(input.projectId, input.threadId);
       }),
 
     /** Get breath history for a project */
